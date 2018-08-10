@@ -20,7 +20,16 @@ SESSCOOKIEPATH=""
 
 DEBUG = False
 
-def createHttpRequest(url, cookiejar):
+def guessCharset(s, encodings=('utf-8', "iso-8859-1", "windows-1251", "windows-1252", "ascii", "latin1", "utf-16", "utf-32")):
+    for encoding in encodings:
+        try:
+            s.decode(encoding)
+            return encoding
+        except UnicodeDecodeError:
+            pass
+    return 'utf-8'
+
+def createHttpRequest(url, cookiejar=None):
         '''
         '''
         urlparts = parse.urlparse(url)
@@ -28,13 +37,17 @@ def createHttpRequest(url, cookiejar):
                 "Accept-Language": "sv-SE,en;q=0.7,en-US;q=0.3a", "Accept-Encoding":"gzip, deflate",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Pragma": "no-cache"}
         req = urllib.request.Request(url, None, headers)
-        cookiejar.add_cookie_header(req)
+        if cookiejar:
+            cookiejar.add_cookie_header(req)
         if DEBUG: print(req.__dict__) 
         with urllib.request.urlopen(req) as response:
-            charset = response.getheader("Content-Type").split("charset=")[1]
             resp = response.read()
             if response.getheader("Content-Encoding") == "gzip":
                 resp = gzip.decompress(resp)
+            try:
+                charset = response.getheader("Content-Type").split("charset=")[1]
+            except:
+                charset = guessCharset(resp)
 
             if DEBUG: print("Response:", response.getheaders()) #DEBUG
             if DEBUG: print("Charset: ", charset) #DEBUG
